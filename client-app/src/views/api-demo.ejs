@@ -1,0 +1,189 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title><%= title %></title>
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+      line-height: 1.6;
+      max-width: 900px;
+      margin: 0 auto;
+      padding: 20px;
+      background: #f5f5f5;
+    }
+    .card {
+      background: white;
+      border-radius: 8px;
+      padding: 24px;
+      margin-bottom: 20px;
+      box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+    }
+    h1, h2 { color: #333; margin-bottom: 16px; }
+    h2 { font-size: 1.2em; }
+    nav { margin-bottom: 20px; }
+    nav a { margin-right: 16px; color: #0066cc; text-decoration: none; }
+    pre {
+      background: #1e1e1e;
+      color: #d4d4d4;
+      padding: 16px;
+      border-radius: 4px;
+      overflow-x: auto;
+      font-size: 0.85em;
+    }
+    .info { background: #e8f4fd; padding: 12px; border-radius: 4px; margin: 12px 0; color: #0c5460; }
+    .warning { background: #fff3cd; padding: 12px; border-radius: 4px; margin: 12px 0; color: #856404; }
+    .status { padding: 8px 16px; border-radius: 4px; display: inline-block; }
+    .status-valid { background: #d4edda; color: #155724; }
+    .status-expired { background: #f8d7da; color: #721c24; }
+    .btn {
+      display: inline-block;
+      padding: 10px 20px;
+      border-radius: 4px;
+      text-decoration: none;
+      font-weight: 500;
+      margin-right: 10px;
+      border: none;
+      cursor: pointer;
+    }
+    .btn-primary { background: #0066cc; color: white; }
+    .btn-success { background: #28a745; color: white; }
+    #api-result {
+      background: #f8f9fa;
+      border: 1px solid #dee2e6;
+      padding: 16px;
+      border-radius: 4px;
+      margin-top: 16px;
+      min-height: 100px;
+    }
+    code { background: #f0f0f0; padding: 2px 6px; border-radius: 3px; }
+  </style>
+</head>
+<body>
+  <nav>
+    <a href="/">Home</a>
+    <a href="/protected/profile">Profile</a>
+    <a href="/protected/tokens">Token Inspector</a>
+    <a href="/protected/api-demo">API Demo</a>
+  </nav>
+
+  <div class="card">
+    <h1>API Demo</h1>
+    <p style="color: #666;">Learn how to call protected APIs using your access token.</p>
+  </div>
+
+  <div class="card">
+    <h2>Token Status</h2>
+    <% if (isExpired) { %>
+      <span class="status status-expired">EXPIRED</span>
+    <% } else { %>
+      <span class="status status-valid">VALID - <%= timeRemaining %> seconds remaining</span>
+    <% } %>
+
+    <div class="info" style="margin-top: 16px;">
+      <strong>Expires at:</strong> <%= expiresAt %>
+    </div>
+
+    <% if (isExpired) { %>
+      <div class="warning">
+        Your access token has expired. Refresh it before making API calls.
+      </div>
+      <form action="/protected/refresh" method="POST" style="margin-top: 12px;">
+        <button type="submit" class="btn btn-primary">Refresh Token</button>
+      </form>
+    <% } %>
+  </div>
+
+  <div class="card">
+    <h2>Making API Calls</h2>
+
+    <div class="info">
+      <strong>How it works:</strong> To access a protected API, include your access token
+      in the <code>Authorization</code> header using the Bearer scheme.
+    </div>
+
+    <h3 style="margin: 16px 0 8px;">Example Request</h3>
+    <pre>GET /api/protected HTTP/1.1
+Host: localhost:3001
+Authorization: Bearer <%= accessToken.substring(0, 50) %>...</pre>
+
+    <h3 style="margin: 16px 0 8px;">Using fetch() in JavaScript</h3>
+    <pre>const response = await fetch('http://localhost:3001/api/protected', {
+  headers: {
+    'Authorization': 'Bearer ' + accessToken
+  }
+});
+
+const data = await response.json();</pre>
+
+    <h3 style="margin: 16px 0 8px;">Using curl</h3>
+    <pre>curl -H "Authorization: Bearer YOUR_TOKEN" \
+     http://localhost:3001/api/protected</pre>
+  </div>
+
+  <div class="card">
+    <h2>Try It Out</h2>
+
+    <div class="warning">
+      <strong>Note:</strong> The Resource Server must be running at <code>http://localhost:3001</code>
+      for these demos to work. Start it with: <code>cd resource-server && npm start</code>
+    </div>
+
+    <div style="margin: 16px 0;">
+      <button onclick="callPublicApi()" class="btn btn-primary">Call Public API</button>
+      <button onclick="callProtectedApi()" class="btn btn-success">Call Protected API</button>
+    </div>
+
+    <div id="api-result">
+      <em style="color: #888;">API response will appear here...</em>
+    </div>
+  </div>
+
+  <script>
+    const accessToken = '<%= accessToken %>';
+
+    async function callPublicApi() {
+      const resultDiv = document.getElementById('api-result');
+      resultDiv.innerHTML = '<em>Calling public API...</em>';
+
+      try {
+        const response = await fetch('http://localhost:3001/api/public');
+        const data = await response.json();
+        resultDiv.innerHTML = '<strong>Public API Response:</strong>\n' +
+          '<pre>' + JSON.stringify(data, null, 2) + '</pre>';
+      } catch (error) {
+        resultDiv.innerHTML = '<strong style="color: #cc3300;">Error:</strong> ' +
+          error.message + '\n\n<em>Is the Resource Server running?</em>';
+      }
+    }
+
+    async function callProtectedApi() {
+      const resultDiv = document.getElementById('api-result');
+      resultDiv.innerHTML = '<em>Calling protected API with Bearer token...</em>';
+
+      try {
+        const response = await fetch('http://localhost:3001/api/protected', {
+          headers: {
+            'Authorization': 'Bearer ' + accessToken
+          }
+        });
+
+        const data = await response.json();
+
+        if (response.ok) {
+          resultDiv.innerHTML = '<strong style="color: #28a745;">Protected API Response (Success!):</strong>\n' +
+            '<pre>' + JSON.stringify(data, null, 2) + '</pre>';
+        } else {
+          resultDiv.innerHTML = '<strong style="color: #cc3300;">Protected API Error (' + response.status + '):</strong>\n' +
+            '<pre>' + JSON.stringify(data, null, 2) + '</pre>';
+        }
+      } catch (error) {
+        resultDiv.innerHTML = '<strong style="color: #cc3300;">Error:</strong> ' +
+          error.message + '\n\n<em>Is the Resource Server running?</em>';
+      }
+    }
+  </script>
+</body>
+</html>

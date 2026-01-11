@@ -1,0 +1,25 @@
+{
+  "name": "oauth2-oidc-resource-server",
+  "version": "1.0.0",
+  "description": "OAuth2/OIDC Learning Project - Resource Server (Protected API)",
+  "main": "src/app.js",
+  "scripts": {
+    "start": "node src/app.js",
+    "dev": "node --watch src/app.js"
+  },
+  "dependencies": {
+    "cors": "^2.8.5",
+    "dotenv": "^16.3.1",
+    "express": "^4.18.2",
+    "jsonwebtoken": "^9.0.2",
+    "jwks-rsa": "^3.1.0"
+  },
+  "keywords": [
+    "oauth2",
+    "resource-server",
+    "api",
+    "jwt",
+    "learning"
+  ],
+  "license": "MIT"
+}

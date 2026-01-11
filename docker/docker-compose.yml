@@ -1,0 +1,167 @@
+# ============================================================
+# OAUTH2/OIDC LEARNING PROJECT - KEYCLOAK SETUP
+# ============================================================
+#
+# This docker-compose file sets up Keycloak as our Authorization Server
+# with PostgreSQL as the database backend.
+#
+# EDUCATIONAL NOTE - Key Concepts:
+# ---------------------------------
+# Keycloak implements both OAuth2 and OpenID Connect specifications.
+# It acts as the "Authorization Server" (OAuth2 term) and
+# "OpenID Provider" (OIDC term) in our architecture.
+#
+# USAGE:
+#   Start:  docker-compose up -d
+#   Stop:   docker-compose down
+#   Logs:   docker-compose logs -f keycloak
+#   Reset:  docker-compose down -v (removes all data)
+#
+# After starting, access Keycloak Admin Console at:
+#   http://localhost:8080
+#   Username: admin
+#   Password: admin
+# ============================================================
+
+services:
+  # --------------------------------------------------------
+  # PostgreSQL Database for Keycloak
+  # --------------------------------------------------------
+  # Keycloak needs a database to store:
+  # - Realms, clients, users, roles
+  # - Sessions, tokens, audit logs
+  #
+  # In production, you'd want:
+  # - Persistent external storage
+  # - Regular backups
+  # - High availability setup
+  # --------------------------------------------------------
+  postgres:
+    image: postgres:16-alpine
+    container_name: oauth2-learning-postgres
+    environment:
+      POSTGRES_DB: keycloak
+      POSTGRES_USER: keycloak
+      POSTGRES_PASSWORD: keycloak_password
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U keycloak"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    networks:
+      - oauth2-network
+
+  # --------------------------------------------------------
+  # Keycloak Authorization Server
+  # --------------------------------------------------------
+  # EDUCATIONAL NOTE - Keycloak Modes:
+  #
+  # 'start-dev' mode (used here):
+  #   - Disables HTTPS requirement
+  #   - Uses HTTP for development
+  #   - Enables theme hot-reload
+  #   - NOT for production!
+  #
+  # 'start' mode (production):
+  #   - Requires HTTPS
+  #   - Optimized for performance
+  #   - Stricter security defaults
+  # --------------------------------------------------------
+  keycloak:
+    image: quay.io/keycloak/keycloak:26.0
+    container_name: oauth2-learning-keycloak
+    command: start-dev
+    environment:
+      # ------------------------------------------------
+      # Admin Credentials
+      # ------------------------------------------------
+      # These create the initial admin user for the
+      # Keycloak Admin Console. Change in production!
+      # ------------------------------------------------
+      KC_BOOTSTRAP_ADMIN_USERNAME: admin
+      KC_BOOTSTRAP_ADMIN_PASSWORD: admin
+
+      # ------------------------------------------------
+      # Database Configuration
+      # ------------------------------------------------
+      # Connects Keycloak to our PostgreSQL instance
+      # ------------------------------------------------
+      KC_DB: postgres
+      KC_DB_URL_HOST: postgres
+      KC_DB_URL_DATABASE: keycloak
+      KC_DB_USERNAME: keycloak
+      KC_DB_PASSWORD: keycloak_password
+      KC_DB_SCHEMA: public
+
+      # ------------------------------------------------
+      # Health & Metrics
+      # ------------------------------------------------
+      # Enables health check endpoints:
+      #   /health/ready - Is Keycloak ready to serve?
+      #   /health/live  - Is Keycloak running?
+      # ------------------------------------------------
+      KC_HEALTH_ENABLED: "true"
+      KC_METRICS_ENABLED: "true"
+
+      # ------------------------------------------------
+      # Hostname Configuration
+      # ------------------------------------------------
+      # EDUCATIONAL NOTE:
+      # Keycloak needs to know its hostname to generate
+      # correct URLs in tokens and redirects.
+      #
+      # For development, we use localhost.
+      # In production, this would be your domain.
+      # ------------------------------------------------
+      KC_HOSTNAME: localhost
+      KC_HOSTNAME_PORT: "8080"
+      KC_HOSTNAME_STRICT: "false"
+      KC_HOSTNAME_STRICT_HTTPS: "false"
+
+      # ------------------------------------------------
+      # HTTP Settings (Development Only!)
+      # ------------------------------------------------
+      # WARNING: In production, always use HTTPS!
+      # OAuth2 tokens are sensitive - never send over
+      # unencrypted connections in real applications.
+      # ------------------------------------------------
+      KC_HTTP_ENABLED: "true"
+
+    ports:
+      # Main Keycloak web interface and API
+      - "8080:8080"
+      # Health and metrics endpoints
+      - "9000:9000"
+    depends_on:
+      postgres:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD-SHELL", "curl -f http://localhost:9000/health/ready || exit 1"]
+      interval: 30s
+      timeout: 10s
+      retries: 5
+      start_period: 60s
+    networks:
+      - oauth2-network
+
+# ============================================================
+# Volumes - Persistent Storage
+# ============================================================
+# Data persists across container restarts.
+# Use 'docker-compose down -v' to completely reset.
+# ============================================================
+volumes:
+  postgres_data:
+    driver: local
+
+# ============================================================
+# Networks
+# ============================================================
+# Isolated network for our OAuth2 learning environment.
+# Containers can communicate using service names as hostnames.
+# ============================================================
+networks:
+  oauth2-network:
+    driver: bridge

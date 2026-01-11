@@ -1,0 +1,149 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title><%= title %></title>
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+      line-height: 1.6;
+      max-width: 800px;
+      margin: 0 auto;
+      padding: 20px;
+      background: #f5f5f5;
+    }
+    .card {
+      background: white;
+      border-radius: 8px;
+      padding: 24px;
+      margin-bottom: 20px;
+      box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+    }
+    h1, h2 { color: #333; margin-bottom: 16px; }
+    h2 { font-size: 1.2em; }
+    nav { margin-bottom: 20px; }
+    nav a { margin-right: 16px; color: #0066cc; text-decoration: none; }
+    nav a:hover { text-decoration: underline; }
+    .info-row { display: flex; padding: 12px 0; border-bottom: 1px solid #eee; }
+    .info-row:last-child { border-bottom: none; }
+    .info-label { font-weight: 600; width: 180px; color: #555; }
+    .info-value { color: #333; word-break: break-all; }
+    .note { background: #fff3cd; padding: 12px; border-radius: 4px; margin-top: 16px; color: #856404; font-size: 0.9em; }
+    code { background: #f0f0f0; padding: 2px 6px; border-radius: 3px; font-size: 0.9em; }
+    .btn {
+      display: inline-block;
+      padding: 10px 20px;
+      border-radius: 4px;
+      text-decoration: none;
+      font-weight: 500;
+      margin-right: 10px;
+    }
+    .btn-danger { background: #cc3300; color: white; }
+  </style>
+</head>
+<body>
+  <nav>
+    <a href="/">Home</a>
+    <a href="/protected/profile">Profile</a>
+    <a href="/protected/tokens">Token Inspector</a>
+    <a href="/protected/api-demo">API Demo</a>
+  </nav>
+
+  <div class="card">
+    <h1>User Profile</h1>
+    <p style="color: #666;">Information about the authenticated user from OAuth2/OIDC tokens.</p>
+  </div>
+
+  <div class="card">
+    <h2>From Session (ID Token Claims)</h2>
+    <p style="color: #888; font-size: 0.9em; margin-bottom: 16px;">
+      This data was extracted from the ID token at login time.
+    </p>
+
+    <div class="info-row">
+      <div class="info-label">Subject (sub)</div>
+      <div class="info-value"><code><%= sessionUser.sub %></code></div>
+    </div>
+
+    <div class="info-row">
+      <div class="info-label">Name</div>
+      <div class="info-value"><%= sessionUser.name || 'Not provided' %></div>
+    </div>
+
+    <div class="info-row">
+      <div class="info-label">Preferred Username</div>
+      <div class="info-value"><%= sessionUser.preferredUsername || 'Not provided' %></div>
+    </div>
+
+    <div class="info-row">
+      <div class="info-label">Email</div>
+      <div class="info-value"><%= sessionUser.email || 'Not provided' %></div>
+    </div>
+
+    <div class="note">
+      <strong>Educational Note:</strong> The <code>sub</code> (subject) claim is the unique identifier
+      for this user. It's stable across sessions and should be used as the primary key
+      for user records in your database.
+    </div>
+  </div>
+
+  <% if (freshUserInfo) { %>
+  <div class="card">
+    <h2>From UserInfo Endpoint (Fresh)</h2>
+    <p style="color: #888; font-size: 0.9em; margin-bottom: 16px;">
+      This data was fetched from Keycloak's UserInfo endpoint using the access token.
+      It reflects the current state of the user's profile.
+    </p>
+
+    <div class="info-row">
+      <div class="info-label">Subject (sub)</div>
+      <div class="info-value"><code><%= freshUserInfo.sub %></code></div>
+    </div>
+
+    <% if (freshUserInfo.name) { %>
+    <div class="info-row">
+      <div class="info-label">Name</div>
+      <div class="info-value"><%= freshUserInfo.name %></div>
+    </div>
+    <% } %>
+
+    <% if (freshUserInfo.preferred_username) { %>
+    <div class="info-row">
+      <div class="info-label">Preferred Username</div>
+      <div class="info-value"><%= freshUserInfo.preferred_username %></div>
+    </div>
+    <% } %>
+
+    <% if (freshUserInfo.email) { %>
+    <div class="info-row">
+      <div class="info-label">Email</div>
+      <div class="info-value"><%= freshUserInfo.email %></div>
+    </div>
+    <% } %>
+
+    <% if (freshUserInfo.email_verified !== undefined) { %>
+    <div class="info-row">
+      <div class="info-label">Email Verified</div>
+      <div class="info-value"><%= freshUserInfo.email_verified ? 'Yes' : 'No' %></div>
+    </div>
+    <% } %>
+
+    <div class="note">
+      <strong>When to use UserInfo:</strong> Use the UserInfo endpoint when you need
+      current user data (e.g., user might have updated their profile). The ID token
+      claims are frozen at authentication time.
+    </div>
+  </div>
+  <% } %>
+
+  <div class="card">
+    <h2>Actions</h2>
+    <a href="/protected/tokens" class="btn" style="background: #0066cc; color: white;">
+      View Tokens
+    </a>
+    <a href="/auth/logout" class="btn btn-danger">Logout</a>
+  </div>
+</body>
+</html>
